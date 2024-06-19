@@ -253,7 +253,7 @@ class Guild(Session):
 
 	@property
 	def owner(self):
-		return Session.settings_ready['guilds'][self.guildID]['owner_id'] #returns type int
+		return Session.settings_ready['guilds'][self.guildID]['owner_id'] if 'owner_id' in Session.settings_ready['guilds'][self.guildID] else Session.settings_ready['guilds'][self.guildID]['properties']['owner_id'] #returns type int
 
 	@property
 	def boostLvl(self):
