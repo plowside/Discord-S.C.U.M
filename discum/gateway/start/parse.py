@@ -1,4 +1,6 @@
 from ..types import Types
+import traceback
+
 
 #parse (remember to do static methods, unless you're changing the formatting)
 class StartParse(object): #really hope this doesn't take too long to run...
@@ -12,30 +14,32 @@ class StartParse(object): #really hope this doesn't take too long to run...
 		#parse private channels
 		ready_data["private_channels"] = {}
 		for j in response["d"]["private_channels"]:
-			ready_data["private_channels"][j["id"]] = dict(j,**{"type":Types.channelTypes[j["type"]]})
+			ready_data["private_channels"][j["id"]] = dict(j,**{"type":Types.channelTypes.get(j["type"])})
 			if "recipient_ids" in ready_data["private_channels"][j["id"]]:
 				recipient_ids = ready_data["private_channels"][j["id"]].pop("recipient_ids")
 				ready_data["private_channels"][j["id"]]["recipients"] = {q:user_pool.get(q,{}) for q in recipient_ids}
 		#add activities key to user settings
-		ready_data["user_guild_settings"]["activities"] = {}
+		ready_data["user_settings"]["activities"] = {}
 		#parse guilds
 		guilds = response["d"]["guilds"]
 		ready_data["guilds"] = {k["id"]:k for k in guilds}
 		for personal_role, guild in zip(response["d"]["merged_members"], guilds):
-			if "unavailable" not in ready_data["guilds"][guild["id"]]:
-				#take care of emojis
-				if isinstance(guild["emojis"], list):
-					ready_data["guilds"][guild["id"]]["emojis"] = {l["id"]:l for l in guild["emojis"]}
-				#take care of roles
-				if isinstance(guild["roles"], list):
-					ready_data["guilds"][guild["id"]]["roles"] = {m["id"]:m for m in guild["roles"]}
-				#take care of channels
-				if isinstance(guild["channels"], list):
-					ready_data["guilds"][guild["id"]]["channels"] = {n["id"]:dict(n,**{"type":Types.channelTypes[n["type"]]}) for n in guild["channels"]}
-			#take care of personal role/nick
-			ready_data["guilds"][guild["id"]]["my_data"] = next((i for i in personal_role if i["user_id"]==response["d"]["user"]["id"]), {}) #personal_role
-			#take care of members
-			ready_data["guilds"][guild["id"]]["members"] = {}
+			try:
+				if "unavailable" not in ready_data["guilds"][guild["id"]]:
+					#take care of emojis
+					if isinstance(guild["emojis"], list):
+						ready_data["guilds"][guild["id"]]["emojis"] = {l["id"]:l for l in guild["emojis"]}
+					#take care of roles
+					if isinstance(guild["roles"], list):
+						ready_data["guilds"][guild["id"]]["roles"] = {m["id"]:m for m in guild["roles"]}
+					#take care of channels
+					if isinstance(guild["channels"], list):
+						ready_data["guilds"][guild["id"]]["channels"] = {n["id"]:dict(n,**{"type":Types.channelTypes.get(n["type"])}) for n in guild["channels"]}
+				#take care of personal role/nick
+				ready_data["guilds"][guild["id"]]["my_data"] = next((i for i in personal_role if i["user_id"]==response["d"]["user"]["id"]), {}) #personal_role
+				#take care of members
+				ready_data["guilds"][guild["id"]]["members"] = {}
+			except Exception as e: print(traceback.extract_tb(e.__traceback__)[-1].lineno, type(e), e)
 		return ready_data
 
 	@staticmethod
